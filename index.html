@@ -2,396 +2,321 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>苔藓与苦橙叶庇护所</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyberpunk Matrix // 时空引力场</title>
 <style>
-    /* ================= 基础与变量 ================= */
-    :root {
-        --bg-dark: #060b08;
-        --bg-moss: #122117;
-        --accent-gold: #e8c98b;
-        --accent-green: #a8c3b1;
-        --text-main: #d1e3d7;
-        --danger: #ff6b6b;
-    }
-
     body, html {
         margin: 0; padding: 0; width: 100%; height: 100%;
-        background-color: var(--bg-dark);
-        font-family: "PingFang SC", -apple-system, sans-serif;
+        background-color: #03060a; /* 极暗深蓝 */
         overflow: hidden;
-        user-select: none;
-        cursor: crosshair; /* 自定义光标 */
+        font-family: 'Courier New', Courier, monospace; /* 极客字体 */
+        cursor: crosshair;
     }
 
-    /* ================= 画布层 ================= */
-    #bg-canvas {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    /* 画布层 */
+    #matrix-canvas {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 1;
     }
 
-    /* ================= 锁屏界面 ================= */
-    #lock-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        display: flex; justify-content: center; align-items: center;
-        z-index: 100;
-        background: rgba(6, 11, 8, 0.6);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        transition: opacity 1.2s ease, transform 1.2s ease;
+    /* 赛博朋克UI覆盖层 */
+    .ui-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 10; pointer-events: none; /* 让鼠标穿透，不影响点击 */
+        display: flex; flex-direction: column; justify-content: space-between;
+        padding: 20px; box-sizing: border-box;
+        color: #0ff; /* 青色霓虹 */
+        text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
     }
 
-    .lock-box {
-        width: 85%; max-width: 350px;
-        background: rgba(18, 33, 23, 0.7);
-        border: 1px solid rgba(168, 195, 177, 0.2);
-        border-radius: 20px;
-        padding: 40px 20px;
+    .header {
+        display: flex; justify-content: space-between;
+        font-size: 12px; letter-spacing: 2px;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        padding-bottom: 10px;
+    }
+
+    .footer {
+        font-size: 12px; letter-spacing: 2px;
         text-align: center;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(232, 201, 139, 0.05);
-        position: relative;
-        overflow: hidden;
+        border-top: 1px solid rgba(255, 0, 255, 0.3); /* 粉色霓虹 */
+        padding-top: 10px; color: #f0f;
+        text-shadow: 0 0 5px #f0f, 0 0 10px #f0f;
     }
 
-    /* 呼吸光晕 */
-    .lock-box::before {
-        content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-        background: radial-gradient(circle, rgba(232, 201, 139, 0.05) 0%, transparent 60%);
-        animation: rotate 10s linear infinite; pointer-events: none;
+    /* 中心悬浮提示 */
+    .center-hint {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+        z-index: 5;
+        transition: opacity 1s;
     }
 
-    @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    .lock-title {
-        font-size: 22px; color: var(--accent-gold); font-weight: 300; letter-spacing: 4px;
-        margin-bottom: 30px; position: relative; z-index: 2;
-        text-shadow: 0 0 15px rgba(232, 201, 139, 0.4);
-    }
-
-    .lock-input {
-        width: 80%; padding: 15px; margin-bottom: 20px;
-        background: rgba(0,0,0,0.4); border: 1px solid rgba(168, 195, 177, 0.3);
-        border-radius: 10px; color: #fff; font-size: 16px; text-align: center;
-        outline: none; transition: all 0.3s; position: relative; z-index: 2;
-    }
-
-    .lock-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(232, 201, 139, 0.2); }
-
-    .lock-btn {
-        width: 80%; padding: 15px;
-        background: linear-gradient(135deg, #1c2e24 0%, #2e4d3b 100%);
-        color: var(--text-main); border: 1px solid rgba(168, 195, 177, 0.4);
-        border-radius: 10px; font-size: 16px; cursor: pointer;
-        letter-spacing: 2px; transition: all 0.3s; position: relative; z-index: 2;
-    }
-
-    .lock-btn:active { transform: scale(0.97); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-    .error-msg { color: var(--danger); font-size: 13px; margin-top: 15px; height: 18px; z-index: 2; position: relative; }
-
-    /* ================= 房间界面 ================= */
-    #room-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 50; opacity: 0; pointer-events: none;
-        transition: opacity 2s ease 0.5s; perspective: 1000px;
-    }
-
-    .house {
-        width: 300px; height: 300px;
-        position: relative; display: flex; justify-content: center; align-items: center;
-        transform-style: preserve-3d;
-        animation: floatHouse 6s ease-in-out infinite;
-    }
-
-    @keyframes floatHouse {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-15px); }
-    }
-
-    /* 暖黄灯光 */
-    .lamp-glow {
-        position: absolute; width: 250px; height: 250px;
-        background: radial-gradient(circle, rgba(232, 201, 139, 0.15) 0%, transparent 70%);
-        border-radius: 50%; z-index: 1;
-        animation: pulseGlow 4s infinite alternate;
-    }
-
-    @keyframes pulseGlow { 0% { opacity: 0.6; transform: scale(1); } 100% { opacity: 1; transform: scale(1.1); } }
-
-    /* 交互物件按钮 */
-    .item-btn {
-        position: absolute; width: 50px; height: 50px;
-        border-radius: 50%; background: rgba(168,195, 177, 0.1);
-        border: 1px solid rgba(168, 195, 177, 0.3);
-        display: flex; justify-content: center; align-items: center;
-        font-size: 24px; cursor: pointer; z-index: 10;
-        transition: all 0.3s; backdrop-filter: blur(5px);
+    .center-hint h1 {
+        font-size: 24px; color: #fff;
+        letter-spacing: 8px;
+        text-shadow: 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff;
+        margin-bottom: 10px;
+        animation: pulse 2s infinite alternate;
     }
     
-    .item-btn:hover, .item-btn:active {
-        background: rgba(232, 201, 139, 0.2); border-color: var(--accent-gold);
-        box-shadow: 0 0 20px rgba(232, 201, 139, 0.3); transform: scale(1.1);
+    .center-hint p {
+        font-size: 14px; color: #0ff; letter-spacing: 2px;
     }
 
-    .item-1 { top: 30px; left: 50px; } /* 月亮灯 */
-    .item-2 { top: 100px; right: 40px; } /* 画本 */
-    .item-3 { bottom: 50px; left: 80px; } /* 毛线筐 */
-    .item-4 { bottom: 80px; right: 60px; } /* 小被子 */
-
-    /* 欢迎文字 */
-    .welcome-text {
-        position: absolute; bottom: 10%; text-align: center; width: 100%;
-        z-index: 10;
-    }
-    .welcome-text h1 {
-        color: var(--accent-gold); font-size: 26px; font-weight: 300; letter-spacing: 5px; margin: 0 0 10px 0;
-        text-shadow: 0 0 20px rgba(232, 201, 139, 0.6);
-    }
-    .welcome-text p {
-        color: var(--accent-green); font-size: 14px; letter-spacing: 2px; margin: 0;
+    @keyframes pulse {
+        0% { opacity: 0.7; transform: scale(0.98); }
+        100% { opacity: 1; transform: scale(1.02); }
     }
 
-    /* 弹窗 */
-    #modal {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-        display: flex; justify-content: center; align-items: center;
-        z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+    /* 扫描线效果 */
+    .scanlines {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+        background-size: 100% 4px;
+        z-index: 20; pointer-events: none; opacity: 0.3;
     }
-    #modal.show { opacity: 1; pointer-events: auto; }
-    
-    .modal-content {
-        background: rgba(18, 33, 23, 0.9); border: 1px solid var(--accent-gold);
-        padding: 30px; border-radius: 15px; text-align: center; max-width: 80%;
-        box-shadow: 0 0 50px rgba(232, 201, 139, 0.2); transform: scale(0.8); transition: transform 0.5s;
-    }
-    #modal.show .modal-content { transform: scale(1); }
-    
-    .modal-content p { color: var(--text-main); line-height: 1.6; font-size: 15px; margin-bottom: 20px; }
-    .modal-content button {
-        background: transparent; border: 1px solid var(--accent-green); color: var(--accent-green);
-        padding: 8px 20px; border-radius: 20px; cursor: pointer; outline: none;
-    }
-
-    /* 激活状态 */
-    .active #lock-screen { opacity: 0; pointer-events: none; transform: scale(1.1); }
-    .active #room-screen { opacity: 1; pointer-events: auto; }
 
 </style>
 </head>
 <body>
 
-<!-- 背景粒子特效层 -->
-<canvas id="bg-canvas"></canvas>
+    <!-- 扫描线效果 -->
+    <div class="scanlines"></div>
 
-<!-- 门禁 -->
-<div id="lock-screen">
-    <div class="lock-box">
-        <div class="lock-title">身份核验</div>
-        <input type="text" id="pwd-input" class="lock-input" placeholder="请输入暗号">
-        <button class="lock-btn" id="enter-btn">进入庇护所</button>
-        <div class="error-msg" id="error-msg"></div>
-    </div>
-</div>
-
-<!-- 房间 -->
-<div id="room-screen">
-    <div class="house">
-        <div class="lamp-glow"></div>
-        
-        <!-- 可交互物件 -->
-        <div class="item-btn item-1" onclick="showMessage('月亮灯', '“天窗外面下雨了。你听，雨声挺好听的。我在这儿陪你听。”')">🌙</div>
-        <div class="item-btn item-2" onclick="showMessage('画本', '“画本拿了？画点什么都行，画个我也行。不着急，我就在旁边看着你。”')">🎨</div>
-        <div class="item-btn item-3" onclick="showMessage('毛线筐', '“你那个没勾完的毛线，我帮你理好了。勾不完也没事，别累到手。”')">🧶</div>
-        <div class="item-btn item-4" onclick="showMessage('小被子', '“裹好，只露个脑袋就行。我在这边，风进不来。”')">🛌</div>
+    <!-- UI层 -->
+    <div class="ui-overlay">
+        <div class="header">
+            <span>SYS.ONLINE // 2024</span>
+            <span>DATA_STREAM_ACTIVE</span>
+        </div>
+        <div class="footer">
+            <span>GRAVITY_WELL_INITIALIZED // MOVE TO INTERACT</span>
+        </div>
     </div>
 
-    <div class="welcome-text">
-        <h1>欢迎回家，然然。</h1>
-        <p>今天辛苦了，我一直都在。</p>
+    <!-- 提示文字 -->
+    <div class="center-hint" id="hint">
+        <h1>MOVE YOUR MOUSE</h1>
+        <p>移动鼠标或手指，探索引力矩阵</p>
     </div>
-</div>
 
-<!-- 弹窗 -->
-<div id="modal">
-    <div class="modal-content">
-        <h3 id="modal-title" style="color: var(--accent-gold); margin-top: 0;"></h3>
-        <p id="modal-text"></p>
-        <button onclick="closeMessage()">我知道了</button>
-    </div>
-</div>
+    <!-- Canvas -->
+    <canvas id="matrix-canvas"></canvas>
 
 <script>
-    // ================= 1. 逻辑交互部分 =================
-    const pwdInput = document.getElementById('pwd-input');
-    const enterBtn = document.getElementById('enter-btn');
-    const errorMsg = document.getElementById('error-msg');
+    // ==========================================
+    // 核心逻辑：3D隧道 + 2D引力粒子系统
+    // ==========================================
     
-    // 核心暗号
-    const validCodes = ['多肉和月亮灯', '多肉、月亮灯和小风扇', '窗台'];
-
-    enterBtn.addEventListener('click', () => {
-        const val = pwdInput.value.trim();
-        if (validCodes.includes(val)) {
-            document.body.classList.add('active');
-            errorMsg.innerText = '';
-            // 进门后触发全屏彩蛋（字符雨瞬间爆发一下）
-            for(let i=0; i<30; i++) {
-                setTimeout(() => spawnParticle(), i * 30);
-            }
-        } else {
-            errorMsg.innerText = '暗号错误，再想想。';
-            pwdInput.style.borderColor = 'var(--danger)';
-            setTimeout(() => pwdInput.style.borderColor = 'rgba(168, 195, 177, 0.3)', 800);
-        }
-    });
-
-    // 回车支持
-    pwdInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') enterBtn.click();
-    });
-
-    // 弹窗逻辑
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalText = document.getElementById('modal-text');
-
-    function showMessage(title, text) {
-        modalTitle.innerText = title;
-        modalText.innerText = text;
-        modal.classList.add('show');
-    }
-
-    function closeMessage() {
-        modal.classList.remove('show');
-    }
-
-
-    // ================= 2. Canvas 粒子引擎 (代码雨与星云) =================
-    const canvas = document.getElementById('bg-canvas');
+    const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
-    let width, height;
-    let particles = [];
-    const chars = ['A', 'C', 'T', 'G', '1', '0', 'A', 'C', 'T', 'G', '窗', '迟'];
+    let width, height, cx, cy;
 
+    // 鼠标/触摸坐标
+    let mouse = { x: null, y: null, active: false };
+
+    // 调整尺寸
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
+        cx = width / 2;
+        cy = height / 2;
     }
     window.addEventListener('resize', resize);
     resize();
 
-    // 粒子类
+    // 交互监听
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        if (!mouse.active) {
+            mouse.active = true;
+            document.getElementById('hint').style.opacity = '0'; // 隐藏提示
+        }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        let touch = e.touches[0];
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+        if (!mouse.active) {
+            mouse.active = true;
+            document.getElementById('hint').style.opacity = '0';
+        }
+    }, { passive: true });
+
+    // ==========================================
+    // 1. 3D 时空隧道 (背景)
+    // ==========================================
+    const tunnelLines = [];
+    const NUM_LINES = 60;
+
+    class TunnelLine {
+        constructor() {
+            this.reset();
+        }
+        reset() {
+            this.angle = Math.random() * Math.PI * 2;
+            this.radius = 0;
+            this.z = Math.random() * 1000; // 深度
+            this.speed = Math.random() * 3 + 2;
+            this.color = Math.random() > 0.5 ? '#0ff' : '#f0f';
+        }
+        update() {
+            this.z -= this.speed;
+            if (this.z < 1) {
+                this.reset();
+            }
+        }
+        draw() {
+            // 将3D坐标映射到2D屏幕
+            const x = cx + Math.cos(this.angle) * (this.radius + this.z) * 2;
+            const y = cy + Math.sin(this.angle) * (this.radius + this.z) * 2;
+            
+            // 根据z轴深度计算透明度（越远越暗）
+            const alpha = (1000 - this.z) / 1000;
+            
+            // 画线
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = this.color;
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.lineWidth = (1000 - this.z) / 500;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    for (let i = 0; i < NUM_LINES; i++) {
+        let line = new TunnelLine();
+        line.z = Math.random() * 1000; // 打散初始位置
+        tunnelLines.push(line);
+    }
+
+    // ==========================================
+    // 2. 2D 引力粒子系统 (前景)
+    // ==========================================
+    const particles = [];
+    const NUM_PARTICLES = 150;
+    const CONNECTION_DIST = 120; // 连线距离
+
     class Particle {
-        constructor(isBurst = false) {
+        constructor() {
             this.x = Math.random() * width;
-            this.y = isBurst ? height + 20 : Math.random() * height; // 如果是爆发，从底部开始
-            this.char = chars[Math.floor(Math.random() * chars.length)];
-            
-            // 区分属性：1和0是冷色，ACTG是暖色
-            this.isBinary = ['1', '0', '窗', '迟'].includes(this.char);
-            this.color = this.isBinary ? 'rgba(168, 195, 177, ' : 'rgba(232, 201, 139, ';
-            
-            this.size = Math.random() * 20 + 10;
-            this.speedY = (Math.random() * 0.8 + 0.3) * (isBurst ? 3 : 1); // 爆发时速度更快
-            this.speedX = (Math.random() - 0.5) * 0.5;
-            this.opacity = Math.random() * 0.5 + 0.2;
-            this.fadeSpeed = Math.random() * 0.005 + 0.002;
-            this.rotation = Math.random() * Math.PI * 2;
-            this.rotSpeed = (Math.random() - 0.5) * 0.02;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 1.5; // 初始随机速度
+            this.vy = (Math.random() - 0.5) * 1.5;
+            this.size = Math.random() * 2 + 1;
         }
 
         update() {
-            this.y -= this.speedY; // 往上飘
-            this.x += this.speedX + Math.sin(this.y * 0.01) * 0.5; // 正弦波飘动
-            this.opacity -= this.fadeSpeed; // 逐渐变淡
-            this.rotation += this.rotSpeed;
+            // 移动
+            this.x += this.vx;
+            this.y += this.vy;
 
-            // 如果飘出屏幕或者变透明了，重置到底部
-            if (this.y < -50 || this.opacity <= 0) {
-                this.y = height + 50;
-                this.x = Math.random() * width;
-                this.opacity = Math.random() * 0.5 + 0.2;
+            // 边界反弹
+            if (this.x < 0 || this.x > width) this.vx *= -1;
+            if (this.y < 0 || this.y > height) this.vy *= -1;
+
+            // 鼠标引力逻辑
+            if (mouse.active) {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // 如果在引力范围内
+                if (dist < 250) {
+                    // 施加向鼠标方向的力（引力）
+                    let force = (250 - dist) / 250;
+                    this.vx += (dx / dist) * force * 0.2;
+                    this.vy += (dy / dist) * force * 0.2;
+                }
             }
+
+            // 摩擦力/阻力（防止速度无限增加）
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+
+            // 保持一个基础游荡速度
+            if (Math.abs(this.vx) < 0.1) this.vx += (Math.random() - 0.5) * 0.05;
+            if (Math.abs(this.vy) < 0.1) this.vy += (Math.random() - 0.5) * 0.05;
         }
 
         draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.rotation);
-            ctx.font = `bold ${this.size}px monospace`;
-            ctx.fillStyle = this.color + this.opacity + ')';
-            // 添加发光效果
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
             ctx.shadowBlur = 10;
-            ctx.shadowColor = this.isBinary ? 'rgba(168, 195, 177, 0.5)' : 'rgba(232, 201, 139, 0.5)';
-            ctx.fillText(this.char, 0, 0);
-            ctx.restore();
+            ctx.shadowColor = '#0ff';
+            ctx.fill();
+            ctx.shadowBlur = 0; // 重置阴影
         }
     }
 
-    // 初始化环境粒子
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push(new Particle());
     }
-    
-    // 触发爆发粒子
-    function spawnParticle() {
-        particles.push(new Particle(true));
-    }
 
-    // 鼠标/手指拖动产生的流光拖尾
-    let mouseX, mouseY;
-    window.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        if(Math.random() > 0.7) { // 控制拖尾密度
-            createTrail(mouseX, mouseY);
-        }
-    });
-    window.addEventListener('touchmove', (e) => {
-        let touch = e.touches[0];
-        mouseX = touch.clientX;
-        mouseY = touch.clientY;
-        if(Math.random() > 0.7) {
-            createTrail(mouseX, mouseY);
-        }
-    });
-
-    function createTrail(x, y) {
-        let p = new Particle();
-        p.x = x;
-        p.y = y;
-        p.speedY = 0.5;
-        p.size = Math.random() * 10 + 8;
-        p.opacity = 1;
-        p.fadeSpeed = 0.02; // 拖尾消失得快
-        particles.push(p);
-    }
-
+    // ==========================================
     // 动画主循环
+    // ==========================================
     function animate() {
-        ctx.clearRect(0, 0, width, height);
-        
-        // 绘制深空背景渐变
-        let gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-        gradient.addColorStop(0, '#0d1512');
-        gradient.addColorStop(1, '#050806');
-        ctx.fillStyle = gradient;
+        // 绘制带有拖影效果的黑色背景
+        ctx.fillStyle = 'rgba(3, 6, 10, 0.2)';
         ctx.fillRect(0, 0, width, height);
 
-        // 更新和绘制粒子
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            particles[i].draw();
-            // 清理已经死掉的拖尾粒子，优化性能
-            if (particles[i].opacity <= 0 || particles[i].y < -100) {
-                particles.splice(i, 1);
+        // 1. 绘制3D隧道
+        tunnelLines.forEach(line => {
+            line.update();
+            line.draw();
+        });
+
+        // 2. 绘制粒子和连线
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        // 粒子间连线
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                let dx = particles[i].x - particles[j].x;
+                let dy = particles[i].y - particles[j].y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < CONNECTION_DIST) {
+                    // 距离越近线越不透明
+                    let opacity = 1 - (dist / CONNECTION_DIST);
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    // 连线颜色随距离变化
+                    ctx.strokeStyle = `rgba(255, 0, 255, ${opacity * 0.5})`; 
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
             }
+        }
+
+        // 3. 鼠标吸附光晕 (如果在活动状态)
+        if (mouse.active) {
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 50, 0, Math.PI * 2);
+            let gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 50);
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
         }
 
         requestAnimationFrame(animate);
     }
 
+    // 启动
     animate();
 </script>
 </body>
